@@ -1,16 +1,21 @@
-# Note: The model and training settings do not follow the reference settings
-# from the paper. The settings are chosen such that the example can easily be
-# run on a small dataset with a single GPU.
+from torch.utils.data import DataLoader 
+
+from tqdm import tqdm
+
+from custom_mnist import CustomMnist
 
 import torch
 from torch import nn
 import torchvision
 
 from lightly.data import LightlyDataset
-from lightly.data import ImageCollateFunction
+from lightly.data import ImageCollateFunction, BaseCollateFunction
 from lightly.models.modules import BarlowTwinsProjectionHead
 from lightly.loss import BarlowTwinsLoss
 
+import matplotlib.pyplot as plt
+
+BATCHSIZE = 256
 
 class BarlowTwins(nn.Module):
     def __init__(self, backbone):
@@ -24,45 +29,54 @@ class BarlowTwins(nn.Module):
         return z
 
 
-resnet = torchvision.models.resnet18()
-backbone = nn.Sequential(*list(resnet.children())[:-1])
-model = BarlowTwins(backbone)
+if __name__ == '__main__':
+    resnet = torchvision.models.resnet18()
+    resnet.conv1 = nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(2, 2), padding=(3, 3), bias=False)
+    backbone = nn.Sequential(*list(resnet.children())[:-1])
+    model = BarlowTwins(backbone)
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model.to(device)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 
-# cifar10 = torchvision.datasets.CIFAR10("datasets/cifar10", download=True)
-mnist = torchvision.datasets.MNIST("datasets/mnist", download=True)
-dataset = LightlyDataset.from_torch_dataset(mnist)
-# or create a dataset from a folder containing images or videos:
-# dataset = LightlyDataset("path/to/folder")
+    # cifar10 = torchvision.datasets.CIFAR10("datasets/cifar10", download=True)
+    # mnist = torchvision.datasets.MNIST("datasets/mnist", download=True)
+    mnist = CustomMnist("datasets/mnist", download=True)
 
-collate_fn = ImageCollateFunction(input_size=32)
+    mnist.data = mnist.data.unsqueeze(dim=1).repeat(1,3,1,1) # make images RGB, TODO: remove later
 
-dataloader = torch.utils.data.DataLoader(
-    dataset,
-    batch_size=256,
-    collate_fn=collate_fn,
-    shuffle=True,
-    drop_last=True,
-    num_workers=8,
-)
+    dataset = LightlyDataset.from_torch_dataset(mnist)
+    # or create a dataset from a folder containing images or videos:
+    # dataset = LightlyDataset("path/to/folder")
 
-criterion = BarlowTwinsLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.06)
+    collate_fn = ImageCollateFunction(input_size=28, min_scale=0.7, hf_prob=0.0)
 
-print("Starting Training")
-for epoch in range(10):
-    total_loss = 0
-    for (x0, x1), _, _ in dataloader:
-        x0 = x0.to(device)
-        x1 = x1.to(device)
-        z0 = model(x0)
-        z1 = model(x1)
-        loss = criterion(z0, z1)
-        total_loss += loss.detach()
-        loss.backward()
-        optimizer.step()
-        optimizer.zero_grad()
-    avg_loss = total_loss / len(dataloader)
-    print(f"epoch: {epoch:>02}, loss: {avg_loss:.5f}")
+    dataloader = DataLoader(
+        dataset,
+        batch_size=BATCHSIZE,
+        collate_fn=collate_fn,
+        shuffle=True,
+        drop_last=True,
+        num_workers=8,
+    )
+
+    criterion = BarlowTwinsLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.06)
+
+    print("Starting Training")
+    for epoch in range(100):
+        total_loss = 0
+        for (x0, x1), _, _ in tqdm(dataloader):
+            x0 = x0.to(device)
+            x1 = x1.to(device)
+            z0 = model(x0)
+            z1 = model(x1)
+            loss = criterion(z0, z1)
+            total_loss += loss.detach()
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+        avg_loss = total_loss / len(dataloader)
+        print(f"epoch: {epoch:>02}, loss: {avg_loss:.5f}")
+
+    torch.save(model, 'models/model_x.pth')
+    torch.save(model.backbone, 'models/backbone_x.pth')
