@@ -7,13 +7,14 @@ from lightly.loss import BarlowTwinsLoss
 
 from tqdm import tqdm
 
-NUM_EPOCHS = 30
 LR = 1e-3
-BATCH_SIZE = 32
-PROXIMITY = 60
+
+NUM_EPOCHS = 30
+BATCH_SIZE = 80
+PROXIMITY = 30
 LAMBDA_PARAM = 1e-3
 
-SUFFIX = f'PRX_{PROXIMITY}'
+SUFFIX = f'EP_{NUM_EPOCHS}_BS_{BATCH_SIZE}_PRX_{PROXIMITY}_LAMBDA_{LAMBDA_PARAM}'
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -35,7 +36,7 @@ def main():
 
     for epoch in range(NUM_EPOCHS):
         losses = []
-        for image, image_d in tqdm(dataloader):
+        for image, image_d, _, _ in tqdm(dataloader):
             image = image.to(device)
             image_d = image_d.to(device)
             
@@ -50,8 +51,9 @@ def main():
         avg_loss = torch.tensor(losses).mean()
         print(f"epoch: {epoch:>02}, loss: {avg_loss:.5f}")
 
-    torch.save(model, f'time_shift/models/model_time_shift_{SUFFIX}.pth')
+    # torch.save(model, f'time_shift/models/model_time_shift_{SUFFIX}.pth')
     torch.save(model.backbone, f'time_shift/models/backbone_time_shift_{SUFFIX}.pth')
+    print(f'backbone_time_shift_{SUFFIX}')
 
 if __name__ == '__main__':
     main()
