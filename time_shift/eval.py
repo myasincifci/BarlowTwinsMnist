@@ -103,7 +103,7 @@ def train(model, num_epochs,train_loader, test_loader, device):
 
             running_loss += loss.item()
 
-        print('Epoch: {}, Loss: {}, Test error: {}'.format(epoch, running_loss, test_model(model, test_loader)))
+        print(f'Epoch: {epoch}, Loss: {running_loss:.4f}, Test error: {test_model(model, test_loader):.4f}')
 
     print('Finished Training')
 
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     model = eval_model
 
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = torch.optim.SGD(model.linear.parameters(), lr=0.005)
+    optimizer = torch.optim.SGD(model.linear.parameters(), lr=0.0005, momentum=0.9)
     # optimizer = torch.optim.SGD(lin_baseline.linear.parameters(), lr=0.001, momentum=0.8)
 
     # train(eval_model, NUM_EPOCHS, train_dataloader, test_dataloader, device)
