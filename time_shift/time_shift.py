@@ -2,7 +2,7 @@ import torch
 from torchvision import transforms as T
 from torch.utils.data import DataLoader
 from time_shift_dataset import TimeShiftDataset
-from model import TimeShiftModel
+from models import TimeShiftModel
 from lightly.loss import BarlowTwinsLoss
 
 from tqdm import tqdm
