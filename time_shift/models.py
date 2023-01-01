@@ -3,6 +3,8 @@ from torchvision.models import resnet34, ResNet34_Weights
 from torch import nn
 import torch
 
+from copy import deepcopy
+
 class TimeShiftModel(nn.Module):
     def __init__(self) -> None:
         super(TimeShiftModel, self).__init__()
@@ -32,12 +34,15 @@ class BaselineRandomInit(nn.Module):
         return x
 
 class BaselineImagenet1K(nn.Module):
-    def __init__(self):
+    def __init__(self, out_features:int, freeze_backbone:bool=False):
         super(BaselineImagenet1K, self).__init__()
         resnet = resnet34(ResNet34_Weights.IMAGENET1K_V1)
         self.backbone = nn.Sequential(*list(resnet.children())[:-1])
         self.backbone[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(2, 2), padding=(3, 3), bias=False)
-        self.linear = nn.Linear(in_features=512, out_features=3, bias=True)
+        self.linear = nn.Linear(in_features=512, out_features=out_features, bias=True)
+
+        if freeze_backbone:
+            self.backbone.requires_grad_(False)
 
     def forward(self, x):
         x = self.backbone(x)
@@ -47,10 +52,13 @@ class BaselineImagenet1K(nn.Module):
         return x
 
 class LinearEval(nn.Module):
-    def __init__(self, backbone: nn.Module):
+    def __init__(self, backbone: nn.Module, out_features:int, freeze_backbone:bool=False):
         super(LinearEval, self).__init__()
-        self.backbone = backbone
-        self.linear = nn.Linear(in_features=512, out_features=3, bias=True)
+        self.backbone = deepcopy(backbone)
+        self.linear = nn.Linear(in_features=512, out_features=out_features, bias=True)
+
+        if freeze_backbone:
+            self.backbone.requires_grad_(False)
 
     def forward(self, x):
         x = self.backbone(x)

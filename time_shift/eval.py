@@ -22,7 +22,7 @@ NUM_EPOCHS = 30
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def plot_batch(batch):
-    images, classes = batch
+    images, _, classes, _ = batch
     n_cols = 5
     n_rows = floor(len(images) / 5)
 
@@ -33,7 +33,7 @@ def plot_batch(batch):
         im = im.swapaxes(0,-1).swapaxes(0,1)
         cls = cls.item()
         ax.text(10.0, 15.0, cls, {'color': 'red'})
-        ax.imshow(im)
+        ax.imshow(im, cmap='gray')
 
     plt.show()
 
