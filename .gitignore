@@ -3,3 +3,8 @@ __pycache__
 datasets
 */models
 videos
+retina_lichtbogen/models
+retinanet_lichtbogen/lichtbogen_ds_coco
+retinanet_lichtbogen/lichtbogen_ds_yolo
+
+time_shift_lichtbogen/models
